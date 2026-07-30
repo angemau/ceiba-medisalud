@@ -32,6 +32,16 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// Los fuentes estan en UTF-8 y deben compilarse como UTF-8 independientemente del
+// file.encoding del daemon (ver la nota en gradle.properties).
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+	testLogging {
+		events 'passed', 'skipped', 'failed'
+		exceptionFormat = 'full'
+	}
 }
