@@ -1,9 +1,12 @@
 package com.angemau.medisalud.exception;
 
+import com.angemau.medisalud.model.Paciente;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -42,5 +45,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DocumentoDuplicadoException.class)
     public ResponseEntity<Object> handleDocumentoDuplicado(DocumentoDuplicadoException ex) {
         return construirRespuesta(HttpStatus.CONFLICT, ex.getMessage());  // 409
+    }
+
+    @ExceptionHandler(EdadInvalidaException.class)
+    public ResponseEntity<Object> handleEdadInvalida(EdadInvalidaException ex) {
+        return construirRespuesta(HttpStatus.BAD_REQUEST, ex.getMessage());  // 400
     }
 }

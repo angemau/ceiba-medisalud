@@ -3,13 +3,11 @@ package com.angemau.medisalud.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -36,4 +34,7 @@ public class Paciente {
     @NotBlank(message = "El email es obligatorio")
     @Email(message = "El email debe tener un formato válido")
     private String email;
+
+    @PastOrPresent(message = "La fecha de nacimiento no puede ser futura")
+    private LocalDate fechaNacimiento;
 }

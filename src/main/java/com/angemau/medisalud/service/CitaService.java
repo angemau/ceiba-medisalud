@@ -1,10 +1,7 @@
 package com.angemau.medisalud.service;
 
 import com.angemau.medisalud.dto.CitaRequest;
-import com.angemau.medisalud.exception.CitaConflictException;
-import com.angemau.medisalud.exception.HorarioInvalidoException;
-import com.angemau.medisalud.exception.PacienteBloqueadoException;
-import com.angemau.medisalud.exception.RecursoNoEncontradoException;
+import com.angemau.medisalud.exception.*;
 import com.angemau.medisalud.model.*;
 import com.angemau.medisalud.repository.CitaRepository;
 import com.angemau.medisalud.repository.MedicoRepository;
@@ -35,6 +32,7 @@ public class CitaService {
         Medico medico = medicoRepository.findById(request.medicoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Médico no encontrado"));
 
+        validarEdadMinima(paciente);                             // RN-03
         validarFranjaHorariaValida(request.fechaHora());       // RN-01
         validarPacienteSinPenalizacionActiva(paciente);         // RN-05 (bloqueo)
 
@@ -106,6 +104,19 @@ public class CitaService {
         return citaRepository.findAll(spec);
     }
 
+    public Cita reprogramarCita(UUID citaId, LocalDateTime nuevaFechaHora) {
+        Cita citaAnterior = citaRepository.findById(citaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cita no encontrada"));
+
+        UUID pacienteId = citaAnterior.getPaciente().getId();
+        UUID medicoId = citaAnterior.getMedico().getId();
+
+        cancelarCita(citaId);        // paso 1 — aplica RN-05 si cancela con <2h
+
+        CitaRequest nuevaRequest = new CitaRequest(pacienteId, medicoId, nuevaFechaHora);
+        return reservarCita(nuevaRequest);   // pasos 2-3 — RN-01, RN-05 (bloqueo), RN-02, RN-04
+    }
+
     private void validarPacienteSinPenalizacionActiva(Paciente paciente) {
         LocalDateTime hace30Dias = LocalDateTime.now().minusDays(30);
         List<Penalizacion> penalizacionesRecientes =
@@ -153,6 +164,13 @@ public class CitaService {
             }
         }
         return franjas;
+    }
+
+    private void validarEdadMinima(Paciente paciente) {
+        if (paciente.getFechaNacimiento() != null
+                && paciente.getFechaNacimiento().isAfter(LocalDate.now())) {
+            throw new EdadInvalidaException("La fecha de nacimiento no puede ser futura");
+        }
     }
 
 }

@@ -50,6 +50,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.angemau.medisalud.exception.EdadInvalidaException;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CitaService")
 class CitaServiceTest {
@@ -150,6 +153,58 @@ class CitaServiceTest {
                     .hasMessage("Médico no encontrado");
 
             verify(citaRepository, never()).save(any());
+        }
+
+        @Nested
+        @DisplayName("RN-03: edad mínima")
+        class ValidacionEdadMinima {
+
+            @Test
+            @DisplayName("sin fecha de nacimiento (edad asumida 0) permite reservar")
+            void sinFechaNacimiento_reservaExitosa() {
+                paciente.setFechaNacimiento(null);
+                dadoTodoEnOrdenPara(FRANJA_VALIDA);
+
+                assertThatCode(() -> citaService.reservarCita(requestPara(FRANJA_VALIDA)))
+                        .doesNotThrowAnyException();
+            }
+
+            @Test
+            @DisplayName("fecha de nacimiento futura lanza EdadInvalidaException")
+            void fechaNacimientoFutura_lanzaExcepcion() {
+                paciente.setFechaNacimiento(LocalDate.now().plusDays(1));
+                dadoPacienteYMedicoExistentes();
+
+                assertThatThrownBy(() -> citaService.reservarCita(requestPara(FRANJA_VALIDA)))
+                        .isInstanceOf(EdadInvalidaException.class)
+                        .hasMessage("La fecha de nacimiento no puede ser futura");
+
+                verify(citaRepository, never()).save(any());
+                verifyNoInteractions(penalizacionRepository);
+            }
+
+            @Test
+            @DisplayName("fecha de nacimiento pasada permite reservar con normalidad")
+            void fechaNacimientoPasadaValida_reservaExitosa() {
+                paciente.setFechaNacimiento(LocalDate.now().minusYears(30));
+                dadoTodoEnOrdenPara(FRANJA_VALIDA);
+
+                Cita resultado = citaService.reservarCita(requestPara(FRANJA_VALIDA));
+
+                assertThat(resultado.getEstado()).isEqualTo(EstadoCita.PROGRAMADA);
+            }
+
+            @Test
+            @DisplayName("orden: edad inválida y horario inválido a la vez → gana EdadInvalidaException")
+            void edadInvalidaYHorarioInvalido_ganaEdadInvalida() {
+                paciente.setFechaNacimiento(LocalDate.now().plusDays(1));
+                dadoPacienteYMedicoExistentes();
+
+                assertThatThrownBy(() -> citaService.reservarCita(requestPara(DOMINGO.atTime(10, 0))))
+                        .isInstanceOf(EdadInvalidaException.class);
+
+                verify(citaRepository, never()).save(any());
+            }
         }
 
         // --- RN-01: franja horaria -------------------------------------------------------
@@ -633,6 +688,96 @@ class CitaServiceTest {
             assertThat(citaService.listarCitas(medicoId, null, null, null, null))
                     .isNotNull()
                     .isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("reprogramarCita")
+    class ReprogramarCita {
+
+        private final UUID citaId = UUID.randomUUID();
+
+        private Cita dadaUnaCitaReprogramable(LocalDateTime fechaHoraOriginal) {
+            Cita cita = TestDataFactory.unaCita(paciente, medico, fechaHoraOriginal, EstadoCita.PROGRAMADA);
+            when(citaRepository.findById(citaId)).thenReturn(Optional.of(cita));
+            when(citaRepository.save(any(Cita.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(pacienteRepository.findById(pacienteId)).thenReturn(Optional.of(paciente));
+            when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(medico));
+            return cita;
+        }
+
+        @Test
+        @DisplayName("lanza RecursoNoEncontrado si la cita no existe")
+        void citaInexistente() {
+            when(citaRepository.findById(citaId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> citaService.reprogramarCita(citaId, FRANJA_VALIDA))
+                    .isInstanceOf(RecursoNoEncontradoException.class)
+                    .hasMessage("Cita no encontrada");
+
+            verifyNoInteractions(penalizacionRepository);
+        }
+
+        @Test
+        @DisplayName("cancela la cita original y crea una nueva PROGRAMADA en el nuevo horario")
+        void reprogramacionExitosa() {
+            dadaUnaCitaReprogramable(LocalDateTime.now().plusDays(5));
+            when(penalizacionRepository.findByPacienteIdAndFechaAfter(eq(pacienteId), any(LocalDateTime.class)))
+                    .thenReturn(List.of());
+            when(citaRepository.existsByMedicoIdAndFechaHoraAndEstado(medicoId, FRANJA_VALIDA, EstadoCita.PROGRAMADA))
+                    .thenReturn(false);
+            when(citaRepository.existsByPacienteIdAndMedicoIdAndFechaHoraAndEstado(
+                    pacienteId, medicoId, FRANJA_VALIDA, EstadoCita.PROGRAMADA)).thenReturn(false);
+
+            Cita nueva = citaService.reprogramarCita(citaId, FRANJA_VALIDA);
+
+            assertThat(nueva.getEstado()).isEqualTo(EstadoCita.PROGRAMADA);
+            assertThat(nueva.getFechaHora()).isEqualTo(FRANJA_VALIDA);
+            assertThat(nueva.getPaciente()).isSameAs(paciente);
+            assertThat(nueva.getMedico()).isSameAs(medico);
+
+            verify(citaRepository, org.mockito.Mockito.times(2)).save(any(Cita.class)); // cancelación + nueva
+        }
+
+        @Test
+        @DisplayName("RN-05: penaliza si la cita original se cancela con menos de 2 horas de antelación")
+        void reprogramacionTardiaPenaliza() {
+            dadaUnaCitaReprogramable(LocalDateTime.now().plusMinutes(30));
+            when(penalizacionRepository.findByPacienteIdAndFechaAfter(eq(pacienteId), any(LocalDateTime.class)))
+                    .thenReturn(List.of());
+            when(citaRepository.existsByMedicoIdAndFechaHoraAndEstado(any(), any(), any())).thenReturn(false);
+            when(citaRepository.existsByPacienteIdAndMedicoIdAndFechaHoraAndEstado(any(), any(), any(), any()))
+                    .thenReturn(false);
+
+            citaService.reprogramarCita(citaId, FRANJA_VALIDA);
+
+            verify(penalizacionRepository).save(any(Penalizacion.class));
+        }
+
+        @Test
+        @DisplayName("RN-02: rechaza si el nuevo horario ya está ocupado por otra cita del médico")
+        void nuevoHorarioOcupado() {
+            dadaUnaCitaReprogramable(LocalDateTime.now().plusDays(5));
+            when(penalizacionRepository.findByPacienteIdAndFechaAfter(eq(pacienteId), any(LocalDateTime.class)))
+                    .thenReturn(List.of());
+            when(citaRepository.existsByMedicoIdAndFechaHoraAndEstado(medicoId, FRANJA_VALIDA, EstadoCita.PROGRAMADA))
+                    .thenReturn(true);
+
+            assertThatThrownBy(() -> citaService.reprogramarCita(citaId, FRANJA_VALIDA))
+                    .isInstanceOf(CitaConflictException.class)
+                    .hasMessage("El médico ya tiene una cita en ese horario");
+        }
+
+        @Test
+        @DisplayName("RN-01: rechaza si el nuevo horario está fuera de atención (la cita original ya quedó cancelada)")
+        void nuevoHorarioInvalido() {
+            Cita original = dadaUnaCitaReprogramable(LocalDateTime.now().plusDays(5));
+
+            assertThatThrownBy(() -> citaService.reprogramarCita(citaId, DOMINGO.atTime(10, 0)))
+                    .isInstanceOf(HorarioInvalidoException.class);
+
+            // documenta el hueco de falta de @Transactional: la cancelación ya se aplicó
+            assertThat(original.getEstado()).isEqualTo(EstadoCita.CANCELADA);
         }
     }
 }

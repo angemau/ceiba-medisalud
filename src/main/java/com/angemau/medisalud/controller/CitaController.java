@@ -1,6 +1,7 @@
 package com.angemau.medisalud.controller;
 
 import com.angemau.medisalud.dto.CitaRequest;
+import com.angemau.medisalud.dto.ReprogramarCitaRequest;
 import com.angemau.medisalud.model.Cita;
 import com.angemau.medisalud.model.EstadoCita;
 import com.angemau.medisalud.service.CitaService;
@@ -50,5 +51,11 @@ public class CitaController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         return ResponseEntity.ok(citaService.listarCitas(medicoId, pacienteId, estado, fechaInicio, fechaFin));
+    }
+
+    @PatchMapping("/{id}/reprogramar")
+    public ResponseEntity<Cita> reprogramar(@PathVariable UUID id,
+                                            @Valid @RequestBody ReprogramarCitaRequest request) {
+        return ResponseEntity.ok(citaService.reprogramarCita(id, request.nuevaFechaHora()));
     }
 }
