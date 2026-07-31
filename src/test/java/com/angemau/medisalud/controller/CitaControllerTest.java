@@ -58,6 +58,9 @@ class CitaControllerTest {
         return LocalDateTime.now().plusDays(7).withHour(10).withMinute(0).withSecond(0).withNano(0);
     }
 
+    private static final java.time.format.DateTimeFormatter FORMATO_FECHA =
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
     private static String jsonRequest(String pacienteId, String medicoId, String fechaHora) {
         return """
                 {"pacienteId": %s, "medicoId": %s, "fechaHora": %s}
@@ -69,7 +72,7 @@ class CitaControllerTest {
     }
 
     private static String bodyValido() {
-        return jsonRequest(PACIENTE_ID.toString(), MEDICO_ID.toString(), fechaFutura().toString());
+        return jsonRequest(PACIENTE_ID.toString(), MEDICO_ID.toString(), FORMATO_FECHA.format(fechaFutura()));
     }
 
     // --- POST /api/citas ---------------------------------------------------------------

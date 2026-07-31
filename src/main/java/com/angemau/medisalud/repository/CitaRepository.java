@@ -13,5 +13,4 @@ public interface CitaRepository extends JpaRepository<Cita, UUID>, JpaSpecificat
     List<Cita> findByMedicoIdAndFechaHoraBetween(UUID medicoId, LocalDateTime inicio, LocalDateTime fin);
     boolean existsByMedicoIdAndFechaHoraAndEstado(UUID medicoId, LocalDateTime fechaHora, EstadoCita estado);
     boolean existsByPacienteIdAndMedicoIdAndFechaHoraAndEstado(UUID pacienteId, UUID medicoId, LocalDateTime fechaHora, EstadoCita estado);
-    boolean existsByPacienteIdAndFechaHoraAndEstado(UUID pacienteId, LocalDateTime fechaHora, EstadoCita estado);
 }
