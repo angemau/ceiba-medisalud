@@ -253,4 +253,3 @@ GET /api/citas?medicoId={id}&estado=PROGRAMADA&fechaInicio=2026-08-01T00:00:00&f
 - Inyectar un `Clock` en `CitaService` para hacer determinista la lógica de cancelación/penalización (hoy depende de `LocalDateTime.now()`).
 - Extraer la lógica de horarios repetida entre `validarFranjaHorariaValida` y `generarFranjasPosibles` a una clase compartida (`HorarioLaboral`).
 - Agregar `@Transactional` a las operaciones que combinan más de una escritura.
-- Despliegue en la nube (Railway/Render).

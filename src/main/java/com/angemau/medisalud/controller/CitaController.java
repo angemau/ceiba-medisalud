@@ -50,8 +50,14 @@ public class CitaController {
             @RequestParam(required = false) UUID medicoId,
             @RequestParam(required = false) UUID pacienteId,
             @RequestParam(required = false) EstadoCita estado,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
+            @Parameter(description = "Fecha y hora en formato AAAA-MM-DDTHH:mm:ss", example = "2026-08-03T00:00:00")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime fechaInicio,
+            @Parameter(description = "Fecha y hora en formato AAAA-MM-DDTHH:mm:ss", example = "2026-08-03T00:00:00")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime fechaFin) {
         return ResponseEntity.ok(citaService.listarCitas(medicoId, pacienteId, estado, fechaInicio, fechaFin));
     }
 
