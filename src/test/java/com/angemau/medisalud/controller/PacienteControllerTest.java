@@ -1,5 +1,6 @@
 package com.angemau.medisalud.controller;
 
+import com.angemau.medisalud.dto.PacienteRequest;
 import com.angemau.medisalud.exception.DocumentoDuplicadoException;
 import com.angemau.medisalud.exception.RecursoNoEncontradoException;
 import com.angemau.medisalud.model.Paciente;
@@ -47,7 +48,7 @@ class PacienteControllerTest {
     @DisplayName("POST /api/pacientes devuelve 201 con el paciente creado")
     void crearDevuelve201() throws Exception {
         Paciente creado = TestDataFactory.unPaciente(UUID.randomUUID());
-        when(pacienteService.crear(any(Paciente.class))).thenReturn(creado);
+        when(pacienteService.crear(any(PacienteRequest.class))).thenReturn(creado);
 
         mockMvc.perform(post("/api/pacientes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -60,7 +61,7 @@ class PacienteControllerTest {
     @Test
     @DisplayName("POST /api/pacientes con documento duplicado devuelve 409")
     void crearDuplicadoDevuelve409() throws Exception {
-        when(pacienteService.crear(any(Paciente.class)))
+        when(pacienteService.crear(any(PacienteRequest.class)))
                 .thenThrow(new DocumentoDuplicadoException("Ya existe un paciente con el documento 1020304050"));
 
         mockMvc.perform(post("/api/pacientes")

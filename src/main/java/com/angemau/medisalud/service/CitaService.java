@@ -40,9 +40,9 @@ public class CitaService {
                 medico.getId(), request.fechaHora(), EstadoCita.PROGRAMADA)) {
             throw new CitaConflictException("El médico ya tiene una cita en ese horario");  // RN-02
         }
-        if (citaRepository.existsByPacienteIdAndMedicoIdAndFechaHoraAndEstado(
-                paciente.getId(), medico.getId(), request.fechaHora(), EstadoCita.PROGRAMADA)) {
-            throw new CitaConflictException("El paciente ya tiene una cita con este médico en ese horario"); // RN-04
+        if (citaRepository.existsByPacienteIdAndFechaHoraAndEstado(
+                paciente.getId(), request.fechaHora(), EstadoCita.PROGRAMADA)) {
+            throw new CitaConflictException("El paciente ya tiene una cita en ese horario"); // RN-04
         }
 
         Cita cita = new Cita();

@@ -1,5 +1,6 @@
 package com.angemau.medisalud.controller;
 
+import com.angemau.medisalud.dto.MedicoRequest;
 import com.angemau.medisalud.exception.RecursoNoEncontradoException;
 import com.angemau.medisalud.model.Medico;
 import com.angemau.medisalud.service.MedicoService;
@@ -46,7 +47,7 @@ class MedicoControllerTest {
     @DisplayName("POST /api/medicos devuelve 201 con el médico creado")
     void crearDevuelve201() throws Exception {
         Medico creado = TestDataFactory.unMedico(UUID.randomUUID());
-        when(medicoService.crear(any(Medico.class))).thenReturn(creado);
+        when(medicoService.crear(any(MedicoRequest.class))).thenReturn(creado);
 
         mockMvc.perform(post("/api/medicos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +89,7 @@ class MedicoControllerTest {
     @Test
     @DisplayName("POST /api/medicos sin teléfono ni email devuelve 201: el contacto es opcional")
     void crearSinContactoDevuelve201() throws Exception {
-        when(medicoService.crear(any(Medico.class))).thenReturn(TestDataFactory.unMedico(UUID.randomUUID()));
+        when(medicoService.crear(any(MedicoRequest.class))).thenReturn(TestDataFactory.unMedico(UUID.randomUUID()));
 
         mockMvc.perform(post("/api/medicos")
                         .contentType(MediaType.APPLICATION_JSON)

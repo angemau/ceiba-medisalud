@@ -24,12 +24,14 @@ com.angemau.medisalud
 ├── service        # Lógica de negocio y reglas (RN-01 a RN-06)
 ├── repository     # Spring Data JPA
 ├── model          # Entidades JPA
-├── dto            # Records de entrada (CitaRequest, ReprogramarCitaRequest)
+├── dto            # Records de entrada (MedicoRequest, PacienteRequest, CitaRequest, ReprogramarCitaRequest)
 ├── exception       # Excepciones de negocio + GlobalExceptionHandler
 └── config          # Configuración (OpenAPI)
 ```
 
 **Por qué capas y no hexagonal:** con un plazo corto, una arquitectura hexagonal agrega indirecciones (puertos/adaptadores) que no aportan valor cuando el dominio es simple y hay un solo consumidor (la API REST). Se prefirió invertir ese tiempo en cobertura de pruebas y en cubrir bien los casos borde de las reglas de negocio.
+
+**DTOs de entrada:** `MedicoRequest` y `PacienteRequest` no incluyen el `id`, ya que lo genera Hibernate automáticamente; así Swagger no lo muestra como campo editable en el ejemplo de request.
 
 **Manejo de errores:** centralizado en `GlobalExceptionHandler` (`@RestControllerAdvice`). Cada excepción de negocio se mapea a un código HTTP específico y todas las respuestas de error siguen el mismo formato (`timestamp`, `status`, `mensaje`).
 
@@ -237,7 +239,7 @@ GET /api/citas?medicoId={id}&estado=PROGRAMADA&fechaInicio=2026-08-01T00:00:00&f
 
 ## Pruebas automatizadas
 
-144 pruebas unitarias con JUnit 5 + Mockito, sin levantar contexto de Spring, cubriendo las 6 reglas de negocio incluyendo sus valores frontera (bordes de horario, bordes de penalización, orden de validaciones).
+162 pruebas unitarias con JUnit 5 + Mockito, sin levantar contexto de Spring, cubriendo las 6 reglas de negocio incluyendo sus valores frontera (bordes de horario, bordes de penalización, orden de validaciones).
 
 ## Limitaciones conocidas
 

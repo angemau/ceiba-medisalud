@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/api/citas")
 @RequiredArgsConstructor
@@ -33,8 +35,8 @@ public class CitaController {
     @GetMapping("/disponibilidad")
     public ResponseEntity<List<LocalDateTime>> consultarDisponibilidad(
             @RequestParam UUID medicoId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
+            @Parameter(description = "Fecha en formato AAAA-MM-DD", example = "2026-08-03") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @Parameter(description = "Fecha en formato AAAA-MM-DD", example = "2026-08-03") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
         return ResponseEntity.ok(citaService.consultarDisponibilidad(medicoId, fechaInicio, fechaFin));
     }
 

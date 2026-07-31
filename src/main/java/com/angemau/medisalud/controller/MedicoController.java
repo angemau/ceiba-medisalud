@@ -1,5 +1,6 @@
 package com.angemau.medisalud.controller;
 
+import com.angemau.medisalud.dto.MedicoRequest;
 import com.angemau.medisalud.model.Medico;
 import com.angemau.medisalud.service.MedicoService;
 import jakarta.validation.Valid;
@@ -19,7 +20,7 @@ public class MedicoController {
     private final MedicoService medicoService;
 
     @PostMapping
-    public ResponseEntity<Medico> crear(@Valid @RequestBody Medico medico) {
+    public ResponseEntity<Medico> crear(@Valid @RequestBody MedicoRequest medico) {
         return ResponseEntity.status(HttpStatus.CREATED).body(medicoService.crear(medico));
     }
 

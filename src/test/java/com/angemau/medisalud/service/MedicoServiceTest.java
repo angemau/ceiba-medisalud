@@ -1,5 +1,6 @@
 package com.angemau.medisalud.service;
 
+import com.angemau.medisalud.dto.MedicoRequest;
 import com.angemau.medisalud.exception.RecursoNoEncontradoException;
 import com.angemau.medisalud.model.Medico;
 import com.angemau.medisalud.repository.MedicoRepository;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,17 +32,19 @@ class MedicoServiceTest {
     @InjectMocks
     private MedicoService medicoService;
 
+    private static final MedicoRequest MEDICO_REQUEST = new MedicoRequest(
+            "Carlos Jaramillo", "Medicina General", "6041234567", "carlos.jaramillo@example.com");
+
     @Test
     @DisplayName("crear delega en el repositorio y devuelve el médico guardado")
     void crear() {
-        Medico aGuardar = TestDataFactory.unMedico(null);
         Medico guardado = TestDataFactory.unMedico(UUID.randomUUID());
-        when(medicoRepository.save(aGuardar)).thenReturn(guardado);
+        when(medicoRepository.save(any(Medico.class))).thenReturn(guardado);
 
-        Medico resultado = medicoService.crear(aGuardar);
+        Medico resultado = medicoService.crear(MEDICO_REQUEST);
 
         assertThat(resultado).isSameAs(guardado);
-        verify(medicoRepository).save(aGuardar);
+        verify(medicoRepository).save(any(Medico.class));
     }
 
     @Test

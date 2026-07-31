@@ -1,5 +1,6 @@
 package com.angemau.medisalud.service;
 
+import com.angemau.medisalud.dto.MedicoRequest;
 import com.angemau.medisalud.exception.RecursoNoEncontradoException;
 import com.angemau.medisalud.model.Medico;
 import com.angemau.medisalud.repository.MedicoRepository;
@@ -15,7 +16,13 @@ public class MedicoService {
 
     private final MedicoRepository medicoRepository;
 
-    public Medico crear(Medico medico) {
+    public Medico crear(MedicoRequest request) {
+        Medico medico = new Medico();
+        medico.setNombreCompleto(request.nombreCompleto());
+        medico.setEspecialidad(request.especialidad());
+        medico.setTelefono(request.telefono());
+        medico.setEmail(request.email());
+
         return medicoRepository.save(medico);
     }
 

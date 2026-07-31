@@ -1,5 +1,6 @@
 package com.angemau.medisalud.service;
 
+import com.angemau.medisalud.dto.PacienteRequest;
 import com.angemau.medisalud.exception.DocumentoDuplicadoException;
 import com.angemau.medisalud.exception.RecursoNoEncontradoException;
 import com.angemau.medisalud.model.Paciente;
@@ -12,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,27 +35,29 @@ class PacienteServiceTest {
     @InjectMocks
     private PacienteService pacienteService;
 
+    private static final PacienteRequest PACIENTE_REQUEST = new PacienteRequest(
+            "Ana Restrepo", "1020304050", "3001234567", "ana.restrepo@example.com",
+            LocalDate.of(1990, 5, 20));
+
     @Test
     @DisplayName("crear guarda al paciente cuando el documento no está registrado")
     void crearConDocumentoNuevo() {
-        Paciente aGuardar = TestDataFactory.unPaciente(null);
         Paciente guardado = TestDataFactory.unPaciente(UUID.randomUUID());
-        when(pacienteRepository.existsByDocumentoIdentidad(aGuardar.getDocumentoIdentidad())).thenReturn(false);
-        when(pacienteRepository.save(aGuardar)).thenReturn(guardado);
+        when(pacienteRepository.existsByDocumentoIdentidad("1020304050")).thenReturn(false);
+        when(pacienteRepository.save(any(Paciente.class))).thenReturn(guardado);
 
-        Paciente resultado = pacienteService.crear(aGuardar);
+        Paciente resultado = pacienteService.crear(PACIENTE_REQUEST);
 
         assertThat(resultado).isSameAs(guardado);
-        verify(pacienteRepository).save(aGuardar);
+        verify(pacienteRepository).save(any(Paciente.class));
     }
 
     @Test
     @DisplayName("crear lanza DocumentoDuplicado y no guarda cuando el documento ya existe")
     void crearConDocumentoDuplicado() {
-        Paciente aGuardar = TestDataFactory.unPaciente(null);
         when(pacienteRepository.existsByDocumentoIdentidad("1020304050")).thenReturn(true);
 
-        assertThatThrownBy(() -> pacienteService.crear(aGuardar))
+        assertThatThrownBy(() -> pacienteService.crear(PACIENTE_REQUEST))
                 .isInstanceOf(DocumentoDuplicadoException.class)
                 .hasMessage("Ya existe un paciente con el documento 1020304050");
 

@@ -1,5 +1,6 @@
 package com.angemau.medisalud.controller;
 
+import com.angemau.medisalud.dto.PacienteRequest;
 import com.angemau.medisalud.model.Paciente;
 import com.angemau.medisalud.service.PacienteService;
 import jakarta.validation.Valid;
@@ -21,7 +22,7 @@ public class PacienteController {
     }
 
     @PostMapping
-    public ResponseEntity<Paciente> crear(@Valid @RequestBody Paciente paciente) {
+    public ResponseEntity<Paciente> crear(@Valid @RequestBody PacienteRequest paciente) {
         Paciente creado = pacienteService.crear(paciente);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }

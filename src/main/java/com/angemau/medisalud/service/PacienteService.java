@@ -1,5 +1,6 @@
 package com.angemau.medisalud.service;
 
+import com.angemau.medisalud.dto.PacienteRequest;
 import com.angemau.medisalud.exception.DocumentoDuplicadoException;
 import com.angemau.medisalud.exception.RecursoNoEncontradoException;
 import com.angemau.medisalud.model.Paciente;
@@ -18,11 +19,19 @@ public class PacienteService {
         this.pacienteRepository = pacienteRepository;
     }
 
-    public Paciente crear(Paciente paciente) {
-        if (pacienteRepository.existsByDocumentoIdentidad(paciente.getDocumentoIdentidad())) {
+    public Paciente crear(PacienteRequest request) {
+        if (pacienteRepository.existsByDocumentoIdentidad(request.documentoIdentidad())) {
             throw new DocumentoDuplicadoException(
-                    "Ya existe un paciente con el documento " + paciente.getDocumentoIdentidad());
+                    "Ya existe un paciente con el documento " + request.documentoIdentidad());
         }
+
+        Paciente paciente = new Paciente();
+        paciente.setNombreCompleto(request.nombreCompleto());
+        paciente.setDocumentoIdentidad(request.documentoIdentidad());
+        paciente.setTelefono(request.telefono());
+        paciente.setEmail(request.email());
+        paciente.setFechaNacimiento(request.fechaNacimiento());
+
         return pacienteRepository.save(paciente);
     }
 

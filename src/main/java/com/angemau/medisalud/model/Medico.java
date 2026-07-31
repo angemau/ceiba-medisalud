@@ -29,7 +29,7 @@ public class Medico {
     @NotBlank(message = "La especialidad es obligatoria")
     private String especialidad;
 
-    @Pattern(regexp = "^$|^[0-9]{7,}$", message = "El teléfono debe tener mínimo 7 dígitos")
+    @Pattern(regexp = "^$|^[0-9-]{7,}$", message = "El teléfono debe tener mínimo 7 dígitos")
     private String telefono;
 
     @Email(message = "El email no tiene un formato válido")
