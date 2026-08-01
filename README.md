@@ -35,6 +35,8 @@ com.angemau.medisalud
 
 **Manejo de errores:** centralizado en `GlobalExceptionHandler` (`@RestControllerAdvice`). Cada excepción de negocio se mapea a un código HTTP específico y todas las respuestas de error siguen el mismo formato (`timestamp`, `status`, `mensaje`).
 
+**DTOs de respuesta:** `CitaResponse` expone únicamente el `id` y `nombreCompleto` del paciente y del médico (más `especialidad` en este último), en vez de las entidades JPA completas. Así se evita filtrar documento de identidad, email y teléfono del paciente en cualquier consulta de citas.
+
 ## Cómo ejecutar el proyecto localmente
 
 ### Requisitos
@@ -74,6 +76,9 @@ La API queda disponible en `http://localhost:8080`.
 ```
 
 Reporte HTML: `build/reports/tests/test/index.html`
+
+Al iniciar la aplicación por primera vez, se insertan automáticamente
+3 médicos de prueba (ver `MedicoSeeder`).
 
 ## Reglas de negocio implementadas
 
@@ -163,8 +168,8 @@ Documento duplicado → 409.
 // Response 201
 {
   "id": "c9d8e7f6-...",
-  "paciente": { "id": "a7e4d1b2-...", "nombreCompleto": "Juan Pérez", "..." : "..." },
-  "medico": { "id": "b3f1c2a0-...", "nombreCompleto": "Dra. María González", "..." : "..." },
+  "paciente": { "id": "a7e4d1b2-...", "nombreCompleto": "Juan Pérez" },
+  "medico": { "id": "b3f1c2a0-...", "nombreCompleto": "Dra. María González", "especialidad": "Cardiología" },
   "fechaHora": "2026-08-10T09:00:00",
   "estado": "PROGRAMADA",
   "fechaCancelacion": null
@@ -191,6 +196,8 @@ Posibles errores: `404` (paciente/médico no existe), `400` (horario inválido),
   "..." : "..."
 }
 ```
+
+Solo permite cancelar citas en estado `PROGRAMADA`. Si la cita ya está `CANCELADA` o `ATENDIDA`, responde `409 Conflict`.
 Si se cancela con menos de 2h de antelación, se registra una penalización para el paciente automáticamente.
 
 **`PATCH /api/citas/{id}/reprogramar`** — Reprogramar cita
@@ -239,20 +246,44 @@ GET /api/citas?medicoId={id}&estado=PROGRAMADA&fechaInicio=2026-08-01T00:00:00&f
 
 ## Pruebas automatizadas
 
-162 pruebas unitarias con JUnit 5 + Mockito, sin levantar contexto de Spring, cubriendo las 6 reglas de negocio incluyendo sus valores frontera (bordes de horario, bordes de penalización, orden de validaciones).
+164 pruebas unitarias con JUnit 5 + Mockito, sin levantar contexto de Spring, cubriendo las 6 reglas de negocio incluyendo sus valores frontera (bordes de horario, bordes de penalización, orden de validaciones).
 
 ## Limitaciones conocidas
 
-- **`reservarCita` y `cancelarCita` no tienen `@Transactional`.** En `reprogramarCita`, si la cancelación de la cita original se completa pero la creación de la nueva cita falla (por ejemplo, el nuevo horario ya está ocupado), no hay rollback: el paciente pierde la cita original sin obtener la nueva. Se documenta como mejora pendiente.
 - `listarCitas` ignora el filtro de fecha si solo se envía uno de los dos extremos (`fechaInicio` o `fechaFin`).
 - La unicidad del documento de identidad del paciente se valida a nivel de aplicación, no con una restricción `UNIQUE` en base de datos, por lo que existe una ventana de condición de carrera en escrituras concurrentes.
 - No se implementó paginación en `listarCitas` ni índices adicionales en la tabla `Cita` (estado, fechaHora, medico_id); se decidió no implementarlo por tiempo.
 
-## Posibles mejoras futuras
+## Pendientes conocidos
 
-- Inyectar un `Clock` en `CitaService` para hacer determinista la lógica de cancelación/penalización (hoy depende de `LocalDateTime.now()`).
-- Extraer la lógica de horarios repetida entre `validarFranjaHorariaValida` y `generarFranjasPosibles` a una clase compartida (`HorarioLaboral`).
-- Agregar `@Transactional` a las operaciones que combinan más de una escritura.
+Por el tiempo limitado de la prueba, se priorizaron correctitud del
+dominio (transaccionalidad, validaciones de estado, exposición de
+datos sensibles) y la base de persistencia (constraints, migraciones,
+seeder) sobre funcionalidades adicionales y pulido. Quedan pendientes:
+
+**Funcionalidad**
+- Endpoint `PATCH /api/citas/{id}/atender` para marcar una cita como
+  `ATENDIDA` (el estado existe en el modelo, pero ninguna operación
+  lo produce actualmente).
+- Filtro de fechas parcial en la consulta de citas: si solo se envía
+  `fechaInicio` o solo `fechaFin`, el filtro se ignora sin aviso.
+- Límite al rango de disponibilidad consultable (`RF-04`), para evitar
+  generar un volumen excesivo de horarios en memoria en un endpoint
+  público.
+- Validación de festivos (`RN-01`): actualmente solo se excluyen los
+  domingos.
+
+**Configuración de producción**
+- `ddl-auto=validate` y `show-sql=false` en el perfil de producción
+  (hoy Hibernate puede modificar el esquema y volcar SQL con datos de
+  pacientes al log).
+
+## Migraciones de base de datos
+
+El esquema se gestiona con Flyway. Los scripts están en
+`src/main/resources/db/migration/{h2|postgresql}`, y Flyway elige
+automáticamente la carpeta según el motor activo (H2 en local,
+PostgreSQL en producción).
 
 ## Despliegue
 - API: https://ceiba-medisalud-production.up.railway.app

@@ -1,6 +1,7 @@
 package com.angemau.medisalud.controller;
 
 import com.angemau.medisalud.dto.CitaRequest;
+import com.angemau.medisalud.dto.CitaResponse;
 import com.angemau.medisalud.dto.ReprogramarCitaRequest;
 import com.angemau.medisalud.model.Cita;
 import com.angemau.medisalud.model.EstadoCita;
@@ -27,9 +28,9 @@ public class CitaController {
     private final CitaService citaService;
 
     @PostMapping
-    public ResponseEntity<Cita> reservar(@Valid @RequestBody CitaRequest request) {
+    public ResponseEntity<CitaResponse> reservar(@Valid @RequestBody CitaRequest request) {
         Cita cita = citaService.reservarCita(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(cita);
+        return ResponseEntity.status(HttpStatus.CREATED).body(CitaResponse.from(cita));
     }
 
     @GetMapping("/disponibilidad")
@@ -41,12 +42,12 @@ public class CitaController {
     }
 
     @PatchMapping("/{id}/cancelar")
-    public ResponseEntity<Cita> cancelar(@PathVariable UUID id) {
-        return ResponseEntity.ok(citaService.cancelarCita(id));
+    public ResponseEntity<CitaResponse> cancelar(@PathVariable UUID id) {
+        return ResponseEntity.ok(CitaResponse.from(citaService.cancelarCita(id)));
     }
 
     @GetMapping
-    public ResponseEntity<List<Cita>> listar(
+    public ResponseEntity<List<CitaResponse>> listar(
             @RequestParam(required = false) UUID medicoId,
             @RequestParam(required = false) UUID pacienteId,
             @RequestParam(required = false) EstadoCita estado,
@@ -58,12 +59,17 @@ public class CitaController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             LocalDateTime fechaFin) {
-        return ResponseEntity.ok(citaService.listarCitas(medicoId, pacienteId, estado, fechaInicio, fechaFin));
+        List<CitaResponse> citas = citaService.listarCitas(medicoId, pacienteId, estado, fechaInicio, fechaFin)
+                .stream()
+                .map(CitaResponse::from)
+                .toList();
+        return ResponseEntity.ok(citas);
     }
 
     @PatchMapping("/{id}/reprogramar")
-    public ResponseEntity<Cita> reprogramar(@PathVariable UUID id,
-                                            @Valid @RequestBody ReprogramarCitaRequest request) {
-        return ResponseEntity.ok(citaService.reprogramarCita(id, request.nuevaFechaHora()));
+    public ResponseEntity<CitaResponse> reprogramar(@PathVariable UUID id,
+                                                    @Valid @RequestBody ReprogramarCitaRequest request) {
+        Cita cita = citaService.reprogramarCita(id, request.nuevaFechaHora());
+        return ResponseEntity.ok(CitaResponse.from(cita));
     }
 }

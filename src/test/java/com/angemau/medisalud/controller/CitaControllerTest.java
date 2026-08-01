@@ -26,13 +26,8 @@ import static com.angemau.medisalud.util.TestDataFactory.LUNES;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -89,7 +84,11 @@ class CitaControllerTest {
                 .andExpect(jsonPath("$.estado").value("PROGRAMADA"))
                 .andExpect(jsonPath("$.id").value(creada.getId().toString()))
                 .andExpect(jsonPath("$.paciente.nombreCompleto").value("Ana Restrepo"))
-                .andExpect(jsonPath("$.medico.especialidad").value("Medicina General"));
+                .andExpect(jsonPath("$.medico.especialidad").value("Medicina General"))
+                // no deben exponerse datos sensibles del paciente
+                .andExpect(jsonPath("$.paciente.documentoIdentidad").doesNotExist())
+                .andExpect(jsonPath("$.paciente.email").doesNotExist())
+                .andExpect(jsonPath("$.paciente.telefono").doesNotExist());
     }
 
     @Test

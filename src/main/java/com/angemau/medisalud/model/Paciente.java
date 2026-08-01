@@ -1,16 +1,21 @@
 package com.angemau.medisalud.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
+@Table(name = "paciente", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "documento_identidad")
+})
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 public class Paciente {
@@ -25,6 +30,7 @@ public class Paciente {
 
     @NotBlank(message = "El documento de identidad es obligatorio")
     @Size(min = 7, message = "El documento debe tener mínimo 7 caracteres")
+    @Column(name = "documento_identidad", nullable = false)
     private String documentoIdentidad;
 
     @NotBlank(message = "El teléfono es obligatorio")

@@ -1,15 +1,8 @@
 package com.angemau.medisalud.service;
 
 import com.angemau.medisalud.dto.CitaRequest;
-import com.angemau.medisalud.exception.CitaConflictException;
-import com.angemau.medisalud.exception.HorarioInvalidoException;
-import com.angemau.medisalud.exception.PacienteBloqueadoException;
-import com.angemau.medisalud.exception.RecursoNoEncontradoException;
-import com.angemau.medisalud.model.Cita;
-import com.angemau.medisalud.model.EstadoCita;
-import com.angemau.medisalud.model.Medico;
-import com.angemau.medisalud.model.Paciente;
-import com.angemau.medisalud.model.Penalizacion;
+import com.angemau.medisalud.exception.*;
+import com.angemau.medisalud.model.*;
 import com.angemau.medisalud.repository.CitaRepository;
 import com.angemau.medisalud.repository.MedicoRepository;
 import com.angemau.medisalud.repository.PacienteRepository;
@@ -23,9 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -35,23 +27,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.angemau.medisalud.util.TestDataFactory.DOMINGO;
-import static com.angemau.medisalud.util.TestDataFactory.FRANJA_VALIDA;
-import static com.angemau.medisalud.util.TestDataFactory.LUNES;
-import static com.angemau.medisalud.util.TestDataFactory.SABADO;
-import static com.angemau.medisalud.util.TestDataFactory.franjasEsperadasDe;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.within;
+import static com.angemau.medisalud.util.TestDataFactory.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
-import com.angemau.medisalud.exception.EdadInvalidaException;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CitaService")
@@ -622,17 +602,30 @@ class CitaServiceTest {
         }
 
         @Test
-        @DisplayName("comportamiento actual: cancelar una cita ya CANCELADA vuelve a penalizar (ver README)")
-        void doblecancelacionVuelveAPenalizar() {
+        @DisplayName("Dado una cita CANCELADA, al intentar cancelarla debe lanzar EstadoInvalidoException")
+        void noDebePermitirCancelarUnaCitaYaCancelada() {
             Cita yaCancelada = TestDataFactory.unaCita(
                     paciente, medico, LocalDateTime.now().plusMinutes(30), EstadoCita.CANCELADA);
             when(citaRepository.findById(citaId)).thenReturn(Optional.of(yaCancelada));
-            when(citaRepository.save(any(Cita.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            citaService.cancelarCita(citaId);
+            assertThatThrownBy(() -> citaService.cancelarCita(citaId))
+                    .isInstanceOf(EstadoInvalidoException.class);
 
-            // El service no valida el estado previo, por lo que se genera una segunda penalización.
-            verify(penalizacionRepository).save(any(Penalizacion.class));
+            verify(citaRepository, never()).save(any());
+            verifyNoInteractions(penalizacionRepository);
+        }
+
+        @Test
+        @DisplayName("Dado una cita ATENDIDA, al intentar cancelarla debe lanzar EstadoInvalidoException")
+        void noDebePermitirCancelarUnaCitaYaAtendida() {
+            Cita atendida = TestDataFactory.unaCita(
+                    paciente, medico, LocalDateTime.now().minusMinutes(30), EstadoCita.ATENDIDA);
+            when(citaRepository.findById(citaId)).thenReturn(Optional.of(atendida));
+
+            assertThatThrownBy(() -> citaService.cancelarCita(citaId))
+                    .isInstanceOf(EstadoInvalidoException.class);
+
+            verify(citaRepository, never()).save(any());
         }
     }
 
@@ -769,15 +762,12 @@ class CitaServiceTest {
         }
 
         @Test
-        @DisplayName("RN-01: rechaza si el nuevo horario está fuera de atención (la cita original ya quedó cancelada)")
+        @DisplayName("RN-01: reprogramar propaga la excepción si el nuevo horario es inválido")
         void nuevoHorarioInvalido() {
-            Cita original = dadaUnaCitaReprogramable(LocalDateTime.now().plusDays(5));
+            dadaUnaCitaReprogramable(LocalDateTime.now().plusDays(5));
 
             assertThatThrownBy(() -> citaService.reprogramarCita(citaId, DOMINGO.atTime(10, 0)))
                     .isInstanceOf(HorarioInvalidoException.class);
-
-            // documenta el hueco de falta de @Transactional: la cancelación ya se aplicó
-            assertThat(original.getEstado()).isEqualTo(EstadoCita.CANCELADA);
         }
     }
 }

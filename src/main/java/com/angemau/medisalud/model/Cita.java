@@ -1,13 +1,15 @@
 package com.angemau.medisalud.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Data
+@Getter
+@Setter
 public class Cita {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

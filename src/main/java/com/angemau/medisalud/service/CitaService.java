@@ -10,6 +10,7 @@ import com.angemau.medisalud.repository.PenalizacionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class CitaService {
     private final MedicoRepository medicoRepository;
     private final PenalizacionRepository penalizacionRepository;
 
+    @Transactional
     public Cita reservarCita(CitaRequest request) {
 
         Paciente paciente = pacienteRepository.findById(request.pacienteId())
@@ -71,10 +73,16 @@ public class CitaService {
                 .toList();
     }
 
+    @Transactional
     public Cita cancelarCita(UUID citaId) {
 
         Cita cita = citaRepository.findById(citaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cita no encontrada"));
+
+        if (cita.getEstado() != EstadoCita.PROGRAMADA) {
+            throw new EstadoInvalidoException(
+                    "No se puede cancelar una cita en estado " + cita.getEstado());
+        }
 
         long horasAntelacion = Duration.between(LocalDateTime.now(), cita.getFechaHora()).toHours();
         if (horasAntelacion < 2) {
@@ -104,6 +112,7 @@ public class CitaService {
         return citaRepository.findAll(spec);
     }
 
+    @Transactional
     public Cita reprogramarCita(UUID citaId, LocalDateTime nuevaFechaHora) {
         Cita citaAnterior = citaRepository.findById(citaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cita no encontrada"));
